@@ -2,41 +2,44 @@ var JSONStream = require('JSONStream');
 var fs = require('fs');
 var turf = require('turf');
 
-var rs = fs.createReadStream('./crimes.json');
+var rs = fs.createReadStream('./311.json');
 var js = JSONStream.parse('.data.*');
-pace = require('pace')(5738523);
+pace = require('pace')(8875664);
 
-// pipe data from the crimes.json file so memory usage is kept low
+// pipe data from the 311.json file so memory usage is kept low
 rs.pipe(js);
 
-// create 1/2 mi grid over chicago
-var bbox = [ -87.934324986, 41.644580105, -87.524388789, 42.023024908 ];
+// create 1/2 mi grid over nyc
+var bbox = [ -74.404,40.484,-73.443,40.977 ];
 var grid = turf.squareGrid(bbox, 0.5, 'miles');
-fs.writeFileSync('grid.geojson', JSON.stringify(grid));
+
 grid.features.forEach(function(cell) {
     // precompute bboxes
     cell.bbox = turf.extent(cell);
     cell.properties.total = 0;
 });
 
+var categories = {};
 var months = {};
-js.on('data', function (obj) {
+js.on('data', function (obj) {    
     pace.op();
     // check for valid lat, lons
-    if(obj[28] && obj[27]) {
-        var pt = turf.point([parseFloat(obj[28]), parseFloat(obj[27])]);
+    if(parseFloat(obj[57]) > -180 && parseFloat(obj[58]) > -180) {
+        var pt = turf.point([parseFloat(obj[58]), parseFloat(obj[57])]);
         for(var i = 0; i < grid.features.length; i++) {
             if(pt.geometry.coordinates[0] >= grid.features[i].bbox[0] &&
                pt.geometry.coordinates[0] <= grid.features[i].bbox[2] &&
                pt.geometry.coordinates[1] >= grid.features[i].bbox[1] &&
                pt.geometry.coordinates[1] <= grid.features[i].bbox[3] &&
                turf.inside(pt, grid.features[i])) {
-                var dateParts = obj[10].split('-');
-                var month = dateParts[0]+'/'+dateParts[1];
-                months[month] = true;
-                if(!grid.features[i].properties[month]) grid.features[i].properties[month] = 0;
-                grid.features[i].properties[month]++;
-                grid.features[i].properties.total++;
+                var dateParts = obj[9].split('-');
+                if(dateParts[0] >= 2010) {
+                    var month = dateParts[0]+'/'+dateParts[1];
+                    months[month] = true;
+                    if(!grid.features[i].properties[month]) grid.features[i].properties[month] = 0;
+                    grid.features[i].properties[month]++;
+                    grid.features[i].properties.total++;
+                }
                 break;
             }
         }
@@ -45,7 +48,7 @@ js.on('data', function (obj) {
 
 js.on('end', function() {
     months = Object.keys(months);
-    // remove cells with no crimes across all months
+    // remove cells with no calls across all months
     grid.features = grid.features.filter(function(cell) {
         if(cell.properties.total > 0) return true;
     });
@@ -56,7 +59,7 @@ js.on('end', function() {
             if(!cell.properties[month]) cell.properties[month] = 0;
         });
     });
-    fs.writeFileSync('grid_dates.geojson', JSON.stringify(grid));
+    fs.writeFileSync('grid.geojson', JSON.stringify(grid));
     console.log('complete');
 });
 

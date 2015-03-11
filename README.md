@@ -21,3 +21,7 @@ Download the data (note: there is a lot of data, so this will take a while)
 Aggregate on 1/2mi grid with monthly counts and totals
 
 `node index.js`
+
+Count monthly totals per borough
+
+`node boroughs.js`
