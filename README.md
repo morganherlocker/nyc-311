@@ -16,7 +16,7 @@ npm install
 
 Download the data (note: there is a lot of data, so this will take a while)
 
-`curl curl https://data.cityofnewyork.us/api/views/fvrb-kbbt/rows.json\?accessType\=DOWNLOAD -o 311.json`
+`curl https://data.cityofnewyork.us/api/views/fvrb-kbbt/rows.json\?accessType\=DOWNLOAD -o 311.json`
 
 Aggregate on 1/2mi grid with monthly counts and totals
 
